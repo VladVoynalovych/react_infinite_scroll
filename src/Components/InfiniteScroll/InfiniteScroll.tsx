@@ -1,7 +1,7 @@
 import axios from "axios";
 import './index.css';
 import flickr from "../../Configs/flickr";
-import {useCallback, useEffect, useRef, useState} from "react";
+import { useEffect, useRef, useState} from "react";
 import {ImageItem} from "../ImageItem/ImageItem";
 
 type ApiData = {
@@ -19,13 +19,9 @@ type Image = {
     src: string;
 }
 
-type State = {
-    images: Image[];
-    page: number
-}
-
 export const InfiniteScroll = () => {
-    const [{images, page}, setImagesState] = useState<State>({images: [], page: 1});
+    const [images, setImagesState] = useState<Array<Image>>([]);
+    const [page, setPage] = useState(0);
 
     const rootRef = useRef<HTMLDivElement>(null);
     const formatData = (unformattedData: Array<ApiData>): Array<Image> => {
@@ -41,49 +37,54 @@ export const InfiniteScroll = () => {
     const getPhotos = async (page = 1) => {
         const REQUEST_URL = 'https://www.flickr.com/services/rest/?method=';
         const METHODS = {
-            GET_RECENT: 'flickr.photos.getRecent',
+            SEARCH: 'flickr.photos.search',
         };
 
-        const reqBody = `api_key=${flickr.key}&format=json&nojsoncallback=1&per_page=40&page=${page}`;
+        const reqBody = `api_key=${flickr.key}&text=africa+nature&format=json&nojsoncallback=1&per_page=40&page=${page}`;
 
-        const reqResult = await axios.get(`${REQUEST_URL}${METHODS.GET_RECENT}&${reqBody}`);
+        const reqResult = await axios.get(`${REQUEST_URL}${METHODS.SEARCH}&${reqBody}`);
         return reqResult.data.photos.photo;
     }
-    const getData = useCallback(
-        async () => {
-        const serverData = await getPhotos(page);
-        const formattedData = formatData(serverData);
 
-        setImagesState( ({images, page}) => {
-            console.log(page)
-                return {
-                    images: [...images, ...formattedData],
-                    page: page + 1
-            }
-        })
-    }, [page])
+
 
     useEffect(() => {
+        const getData = async (page: number) => {
+            const serverData = await getPhotos(page);
+            const formattedData = formatData(serverData);
+
+            setImagesState( (images) => {
+                return [...images, ...formattedData];
+            })
+
+            setPage(page);
+        };
+
         if (!rootRef.current) return;
-        const rootItem = rootRef.current.lastChild ?? rootRef.current
+
+        if (!rootRef.current.lastChild) {
+            getData(page + 1)
+            return;
+        }
+
         const observer = new IntersectionObserver((entries, observer) => {
             entries.forEach((entry, index) => {
                 if (entry.isIntersecting) {
-                    getData();
+                 observer.unobserve(entry.target);
+                 getData(page + 1);
                 }
             })
         }, {
-            root: rootItem as Element,
-            threshold: 0.5
+            root: rootRef.current as Element,
+            threshold: 1,
         })
 
-        observer.observe(rootItem as Element)
-
-    }, [getData])
+        observer.observe(rootRef.current.lastChild as Element)
+    }, [page])
 
     return <div className="scroll-wrapper" ref={rootRef}>
         {
-            images.map((image, index) => <ImageItem key={index} src={image.src}/>)
+            images.map((image, index) => <ImageItem key={index} src={image.src} index={index}/>)
         }
     </div>
 
