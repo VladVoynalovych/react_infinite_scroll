@@ -20,40 +20,38 @@ type Image = {
     src: string;
 }
 
+const formatData = (unformattedData: Array<ApiData>): Array<Image> => {
+    return unformattedData.map(({farm, server, id, secret}) => {
+        return {
+            src:`https://farm${farm}.staticflickr.com/${server}/${id}_${secret}_m.jpg`,
+        }
+    })
+}
+
+const getPhotos = async (page = 1) => {
+    const REQUEST_URL = 'https://www.flickr.com/services/rest/?method=';
+    const METHODS = {
+        SEARCH: 'flickr.photos.search',
+    };
+
+    const reqBody = `api_key=${flickr.key}&text=africa+nature&format=json&nojsoncallback=1&per_page=40&page=${page}`;
+
+    const reqResult = await axios.get(`${REQUEST_URL}${METHODS.SEARCH}&${reqBody}`);
+    return reqResult.data.photos.photo;
+}
+
 export const InfiniteScroll = () => {
-    const [images, setImagesState] = useState<Array<Image>>([]);
+    const [images, setImagesState] = useState<Image[]>([]);
     const [page, setPage] = useState(0);
-    const [isLoading, setLoadingState] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
 
     const rootRef = useRef<HTMLDivElement>(null);
     const spinnerRef = useRef<HTMLDivElement>(null);
 
-    const formatData = (unformattedData: Array<ApiData>): Array<Image> => {
-        const formattedData = unformattedData.map(({farm, server, id, secret}) => {
-            return {
-                src:`https://farm${farm}.staticflickr.com/${server}/${id}_${secret}_m.jpg`,
-            }
-        })
-
-        return formattedData;
-    }
-
-    const getPhotos = async (page = 1) => {
-        const REQUEST_URL = 'https://www.flickr.com/services/rest/?method=';
-        const METHODS = {
-            SEARCH: 'flickr.photos.search',
-        };
-
-        const reqBody = `api_key=${flickr.key}&text=africa+nature&format=json&nojsoncallback=1&per_page=40&page=${page}`;
-
-        const reqResult = await axios.get(`${REQUEST_URL}${METHODS.SEARCH}&${reqBody}`);
-        return reqResult.data.photos.photo;
-    }
-
-
-
     useEffect(() => {
-        const getData = async (page: number) => {
+        if (!rootRef.current || !spinnerRef.current || isLoading) return;
+
+        const requestProcess = async (page: number) => {
             const serverData = await getPhotos(page);
             const formattedData = formatData(serverData);
 
@@ -61,19 +59,21 @@ export const InfiniteScroll = () => {
                 return [...images, ...formattedData];
             })
             setPage(page);
-
-            return true;
         };
 
         const loadPage = async () => {
             if (!isLoading) {
-                setLoadingState(true)
-                const data = await getData(page + 1);
-                if (data) setLoadingState(false);
+                try {
+                    setIsLoading(true)
+                    await requestProcess(page + 1);
+                    setIsLoading(false);
+                } catch(e) {
+                    return e;
+                } finally {
+                    setIsLoading(false);
+                }
             }
         }
-
-        if (!rootRef.current || !spinnerRef.current) return;
 
         const target = spinnerRef.current;
 
@@ -86,13 +86,10 @@ export const InfiniteScroll = () => {
             })
         }, {
             root: rootRef.current as Element,
-            threshold: 1,
+            threshold: 1.0,
         })
 
-        if (!isLoading) {
-            observer.observe(target as Element)
-            console.log(target)
-        }
+        observer.observe(target as Element)
 
         return () => {
             observer.unobserve(target as Element);
