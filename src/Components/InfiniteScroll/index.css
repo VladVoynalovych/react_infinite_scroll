@@ -10,3 +10,21 @@
     box-sizing: border-box;
     padding: 5px;
 }
+
+.empty {
+    justify-content: center;
+    align-items: center;
+}
+
+.spinner {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: auto;
+}
+
+.disabled {
+    height: 0;
+    overflow: hidden;
+}

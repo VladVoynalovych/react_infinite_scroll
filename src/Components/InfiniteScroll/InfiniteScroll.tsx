@@ -3,6 +3,7 @@ import './index.css';
 import flickr from "../../Configs/flickr";
 import { useEffect, useRef, useState} from "react";
 import {ImageItem} from "../ImageItem/ImageItem";
+import { TailSpin } from  'react-loader-spinner'
 
 type ApiData = {
     id: string,
@@ -22,8 +23,11 @@ type Image = {
 export const InfiniteScroll = () => {
     const [images, setImagesState] = useState<Array<Image>>([]);
     const [page, setPage] = useState(0);
+    const [isLoading, setLoadingState] = useState(false);
 
     const rootRef = useRef<HTMLDivElement>(null);
+    const spinnerRef = useRef<HTMLDivElement>(null);
+
     const formatData = (unformattedData: Array<ApiData>): Array<Image> => {
         const formattedData = unformattedData.map(({farm, server, id, secret}) => {
             return {
@@ -56,22 +60,28 @@ export const InfiniteScroll = () => {
             setImagesState( (images) => {
                 return [...images, ...formattedData];
             })
-
             setPage(page);
+
+            return true;
         };
 
-        if (!rootRef.current) return;
-
-        if (!rootRef.current.lastChild) {
-            getData(page + 1)
-            return;
+        const loadPage = async () => {
+            if (!isLoading) {
+                setLoadingState(true)
+                const data = await getData(page + 1);
+                if (data) setLoadingState(false);
+            }
         }
+
+        if (!rootRef.current || !spinnerRef.current) return;
+
+        const target = spinnerRef.current;
 
         const observer = new IntersectionObserver((entries, observer) => {
             entries.forEach((entry, index) => {
                 if (entry.isIntersecting) {
-                 observer.unobserve(entry.target);
-                 getData(page + 1);
+                    console.log('intersected')
+                    loadPage();
                 }
             })
         }, {
@@ -79,13 +89,34 @@ export const InfiniteScroll = () => {
             threshold: 1,
         })
 
-        observer.observe(rootRef.current.lastChild as Element)
-    }, [page])
+        if (!isLoading) {
+            observer.observe(target as Element)
+            console.log(target)
+        }
 
-    return <div className="scroll-wrapper" ref={rootRef}>
+        return () => {
+            observer.unobserve(target as Element);
+        }
+    }, [page, isLoading])
+
+    return <div className={`scroll-wrapper ${images.length ? '': 'empty'}`} ref={rootRef} >
         {
             images.map((image, index) => <ImageItem key={index} src={image.src} index={index}/>)
         }
+        <div className={`spinner ${ isLoading ? '' : 'disabled' }`}
+             ref={spinnerRef}
+        >
+            <TailSpin
+                height="80"
+                width="80"
+                color="#4fa94d"
+                ariaLabel="tail-spin-loading"
+                radius="1"
+                wrapperStyle={{}}
+                wrapperClass=""
+                visible={true}
+            />
+        </div>
     </div>
 
 }
