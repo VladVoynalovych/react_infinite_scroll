@@ -1,0 +1,46 @@
+.scroll-wrapper {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    align-items: flex-start;
+    gap: 10px;
+    width: 100%;
+    height: 99vh;
+    overflow-y: scroll;
+    box-sizing: border-box;
+    padding: 5px;
+}
+
+.empty {
+    justify-content: center;
+    align-items: center;
+}
+
+.spinner {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: auto;
+}
+
+.disabled {
+    height: 0;
+    overflow: hidden;
+}
+
+.error-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: auto;
+}
+
+.retry-button {
+    width: 120px;
+    height: 44px;
+    color: #fff;
+    background: #4fa94d;
+    border: none;
+}
