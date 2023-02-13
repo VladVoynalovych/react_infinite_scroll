@@ -28,3 +28,19 @@
     height: 0;
     overflow: hidden;
 }
+
+.error-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: auto;
+}
+
+.retry-button {
+    width: 120px;
+    height: 44px;
+    color: #fff;
+    background: #4fa94d;
+    border: none;
+}
